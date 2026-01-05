@@ -1,59 +1,157 @@
-<div>Teachable Machine Image Model</div>
-<button type="button" onclick="init()">Start</button>
-<div id="webcam-container"></div>
-<div id="label-container"></div>
+좋아요! Teachable Machine 코드를 훨씬 세련되게 다듬고, 왜 캠이 안 뜨는지 이유도 해결해 드릴게요.
+
+1. 캠이 안 뜨는 이유 (중요!)
+가장 큰 이유는 코드 중간에 있는 const URL = "./my_model/"; 부분 때문일 확률이 높습니다.
+
+현재 코드는 내 컴퓨터나 서버의 특정 폴더에서 모델 파일을 찾으려고 하는데, 파일이 없거나 경로가 틀리면 실행이 멈춰버립니다.
+
+해결책: Teachable Machine 사이트에서 모델을 학습시킨 후 **[Update Model]**을 누르고, 거기서 생성된 **공유 링크(https://teachablemachine.withgoogle.com/models/...)**를**를) 여기에 넣어야 합니다.
+
+2. 디자인을 바꾼 새로운 코드 (복사해서 써보세요!)
+아까 만든 To-Do List와 비슷한 글래스모피즘(유리 효과) 디자인을 적용했습니다. 캠 화면이 둥글게 나오고, 결과값도 막대 그래프처럼 예쁘게 보이도록 만들었어요.
+
+HTML
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 바이브 탐지기</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Pretendard', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            color: white;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            padding: 30px;
+            border-radius: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            width: 90%;
+            max-width: 450px;
+        }
+
+        h2 { margin-bottom: 20px; font-weight: 300; }
+
+        /* 캠 화면 스타일 */
+        #webcam-container {
+            margin: 20px auto;
+            border-radius: 20px;
+            overflow: hidden;
+            width: 250px;
+            height: 250px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        canvas { width: 100%; height: 100%; object-fit: cover; }
+
+        button {
+            background: white;
+            color: #764ba2;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        button:hover { transform: scale(1.05); background: #f0f0f0; }
+
+        /* 결과 창 스타일 */
+        #label-container {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            text-align: left;
+        }
+
+        .result-bar {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 15px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>AI Vision 모델</h2>
+    <button type="button" onclick="init()">AI 시작하기</button>
+    <div id="webcam-container"></div>
+    <div id="label-container"></div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
 <script type="text/javascript">
-    // More API functions here:
-    // https://github.com/googlecreativelab/teachablemachine-community/tree/master/libraries/image
-
-    // the link to your model provided by Teachable Machine export panel
-    const URL = "./my_model/";
+    // ⚠️ 중요: 본인의 Teachable Machine 모델 주소로 꼭 바꾸세요!
+    // 예: "https://teachablemachine.withgoogle.com/models/abc12345/"
+    const URL = "./my_model/"; 
 
     let model, webcam, labelContainer, maxPredictions;
 
-    // Load the image model and setup the webcam
     async function init() {
         const modelURL = URL + "model.json";
         const metadataURL = URL + "metadata.json";
 
-        // load the model and metadata
-        // Refer to tmImage.loadFromFiles() in the API to support files from a file picker
-        // or files from your local hard drive
-        // Note: the pose library adds "tmImage" object to your window (window.tmImage)
-        model = await tmImage.load(modelURL, metadataURL);
-        maxPredictions = model.getTotalClasses();
+        try {
+            model = await tmImage.load(modelURL, metadataURL);
+            maxPredictions = model.getTotalClasses();
 
-        // Convenience function to setup a webcam
-        const flip = true; // whether to flip the webcam
-        webcam = new tmImage.Webcam(200, 200, flip); // width, height, flip
-        await webcam.setup(); // request access to the webcam
-        await webcam.play();
-        window.requestAnimationFrame(loop);
+            const flip = true; 
+            webcam = new tmImage.Webcam(250, 250, flip); 
+            await webcam.setup(); 
+            await webcam.play();
+            window.requestAnimationFrame(loop);
 
-        // append elements to the DOM
-        document.getElementById("webcam-container").appendChild(webcam.canvas);
-        labelContainer = document.getElementById("label-container");
-        for (let i = 0; i < maxPredictions; i++) { // and class labels
-            labelContainer.appendChild(document.createElement("div"));
+            document.getElementById("webcam-container").appendChild(webcam.canvas);
+            labelContainer = document.getElementById("label-container");
+            for (let i = 0; i < maxPredictions; i++) {
+                const div = document.createElement("div");
+                div.className = "result-bar";
+                labelContainer.appendChild(div);
+            }
+        } catch (e) {
+            alert("모델을 불러오지 못했습니다. URL 주소를 확인해주세요!");
         }
     }
 
     async function loop() {
-        webcam.update(); // update the webcam frame
+        webcam.update(); 
         await predict();
         window.requestAnimationFrame(loop);
     }
 
-    // run the webcam image through the image model
     async function predict() {
-        // predict can take in an image, video or canvas html element
         const prediction = await model.predict(webcam.canvas);
         for (let i = 0; i < maxPredictions; i++) {
-            const classPrediction =
-                prediction[i].className + ": " + prediction[i].probability.toFixed(2);
+            const classPrediction = `
+                <span>${prediction[i].className}</span>
+                <strong>${(prediction[i].probability * 100).toFixed(0)}%</strong>
+            `;
             labelContainer.childNodes[i].innerHTML = classPrediction;
         }
     }
 </script>
+
+</body>
+</html>
