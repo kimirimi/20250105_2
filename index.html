@@ -5,83 +5,112 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 바이브 탐지기</title>
     <style>
+        /* 배경 및 전체 레이아웃 */
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            font-family: 'Pretendard', sans-serif;
+            background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
+            font-family: 'Pretendard', -apple-system, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             margin: 0;
-            color: white;
+            color: #333;
         }
 
+        /* 메인 컨테이너 (유리 효과) */
         .container {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(15px);
-            padding: 30px;
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(12px);
+            padding: 40px;
             border-radius: 30px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
             text-align: center;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
             width: 90%;
-            max-width: 450px;
+            max-width: 400px;
         }
 
-        h2 { margin-bottom: 20px; font-weight: 300; }
+        h2 {
+            margin-top: 0;
+            font-weight: 700;
+            color: #4a5568;
+            letter-spacing: -1px;
+        }
 
-        /* 캠 화면 스타일 */
+        /* 스타트 버튼 */
+        .start-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+            box-shadow: 0 4px 15px rgba(118, 75, 162, 0.3);
+            margin-bottom: 20px;
+        }
+
+        .start-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(118, 75, 162, 0.4);
+        }
+
+        /* 웹캠 화면 스타일 */
         #webcam-container {
             margin: 20px auto;
             border-radius: 20px;
-            overflow: hidden;
-            width: 250px;
-            height: 250px;
-            border: 5px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            overflow: hidden; /* 테두리 밖으로 나가는 화면 가리기 */
+            width: 280px;
+            height: 280px;
+            border: 6px solid white;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            background: #eee;
         }
 
-        canvas { width: 100%; height: 100%; object-fit: cover; }
-
-        button {
-            background: white;
-            color: #764ba2;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 50px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.3s;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        /* 캔버스 실제 크기 조정 */
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover;
         }
 
-        button:hover { transform: scale(1.05); background: #f0f0f0; }
-
-        /* 결과 창 스타일 */
+        /* 결과 창 스타일 (막대기 형태) */
         #label-container {
-            margin-top: 20px;
+            margin-top: 25px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            text-align: left;
+            gap: 12px;
         }
 
-        .result-bar {
-            background: rgba(255, 255, 255, 0.2);
+        .prediction-row {
+            background: rgba(255, 255, 255, 0.7);
             padding: 10px 15px;
-            border-radius: 10px;
+            border-radius: 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            font-size: 15px;
+            font-weight: 500;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .prob-badge {
+            background: #764ba2;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 12px;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>AI Vision 모델</h2>
-    <button type="button" onclick="init()">AI 시작하기</button>
+    <h2>AI Vision Model</h2>
+    <button class="start-btn" type="button" onclick="init()">AI 카메라 켜기</button>
+    
     <div id="webcam-container"></div>
     <div id="label-container"></div>
 </div>
@@ -89,9 +118,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
 <script type="text/javascript">
-    // ⚠️ 중요: 본인의 Teachable Machine 모델 주소로 꼭 바꾸세요!
-    // 예: "https://teachablemachine.withgoogle.com/models/abc12345/"
-    const URL = "./my_model/"; 
+    const URL = "https://teachablemachine.withgoogle.com/models/_YhtGMsfK/";
 
     let model, webcam, labelContainer, maxPredictions;
 
@@ -99,25 +126,27 @@
         const modelURL = URL + "model.json";
         const metadataURL = URL + "metadata.json";
 
-        try {
-            model = await tmImage.load(modelURL, metadataURL);
-            maxPredictions = model.getTotalClasses();
+        // 모델 로드
+        model = await tmImage.load(modelURL, metadataURL);
+        maxPredictions = model.getTotalClasses();
 
-            const flip = true; 
-            webcam = new tmImage.Webcam(250, 250, flip); 
-            await webcam.setup(); 
-            await webcam.play();
-            window.requestAnimationFrame(loop);
+        // 웹캠 설정
+        const flip = true; 
+        webcam = new tmImage.Webcam(280, 280, flip); 
+        await webcam.setup(); 
+        await webcam.play();
+        window.requestAnimationFrame(loop);
 
-            document.getElementById("webcam-container").appendChild(webcam.canvas);
-            labelContainer = document.getElementById("label-container");
-            for (let i = 0; i < maxPredictions; i++) {
-                const div = document.createElement("div");
-                div.className = "result-bar";
-                labelContainer.appendChild(div);
-            }
-        } catch (e) {
-            alert("모델을 불러오지 못했습니다. URL 주소를 확인해주세요!");
+        // 캠 화면 넣기
+        document.getElementById("webcam-container").appendChild(webcam.canvas);
+        
+        // 결과창 초기화
+        labelContainer = document.getElementById("label-container");
+        labelContainer.innerHTML = ''; // 기존 내용 삭제
+        for (let i = 0; i < maxPredictions; i++) {
+            const div = document.createElement("div");
+            div.className = "prediction-row";
+            labelContainer.appendChild(div);
         }
     }
 
@@ -130,11 +159,13 @@
     async function predict() {
         const prediction = await model.predict(webcam.canvas);
         for (let i = 0; i < maxPredictions; i++) {
-            const classPrediction = `
-                <span>${prediction[i].className}</span>
-                <strong>${(prediction[i].probability * 100).toFixed(0)}%</strong>
+            const name = prediction[i].className;
+            const prob = (prediction[i].probability * 100).toFixed(0);
+            
+            labelContainer.childNodes[i].innerHTML = `
+                <span>${name}</span>
+                <span class="prob-badge">${prob}%</span>
             `;
-            labelContainer.childNodes[i].innerHTML = classPrediction;
         }
     }
 </script>
